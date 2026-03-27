@@ -1,0 +1,8 @@
+{
+  "programming": ["python", "java", "c++", "javascript"],
+  "frontend": ["html", "css", "react", "nextjs", "tailwind"],
+  "backend": ["nodejs", "express", "fastapi", "django", "flask"],
+  "database": ["mysql", "mongodb", "postgresql"],
+  "tools": ["git", "docker", "aws", "github"],
+  "ml": ["machine learning", "numpy", "pandas", "scikit-learn"]
+}
