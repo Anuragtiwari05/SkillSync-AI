@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 import PyPDF2
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -6,6 +7,19 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = FastAPI()
 
+# 🔹 CORS Middleware
+origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # allow frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 🔹 Extract text from PDF
 def extract_text_from_pdf(file):
@@ -15,14 +29,12 @@ def extract_text_from_pdf(file):
         text += page.extract_text()
     return text
 
-
 # 🔹 Clean text
 def clean_text(text):
     text = text.lower()
     text = re.sub(r'[^a-z\s]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
     return text
-
 
 # 🔹 Main API
 @app.post("/analyze")
