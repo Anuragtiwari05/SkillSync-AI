@@ -1,25 +1,41 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 import PyPDF2
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import os
 
 app = FastAPI()
 
 # 🔹 CORS Middleware
 origins = [
     "http://127.0.0.1:5500",
-    "http://localhost:5500"
+    "http://localhost:5500",
+    "http://127.0.0.1:8000"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # allow frontend origin
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 🔹 Mount static folder
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 🔹 Serve Home Page
+@app.get("/", response_class=FileResponse)
+async def read_home():
+    home_path = os.path.join("static", "home.html")
+    if os.path.exists(home_path):
+        return FileResponse(home_path)
+    else:
+        return FileResponse("static/notfound.html")  # optional 404 page
 
 # 🔹 Extract text from PDF
 def extract_text_from_pdf(file):
@@ -60,30 +76,22 @@ async def analyze_resume(
 
     # 🔹 Skill Extraction (Simple TF-IDF)
     feature_names = vectorizer.get_feature_names_out()
-
     resume_vector = tfidf_matrix[0].toarray()[0]
     jd_vector = tfidf_matrix[1].toarray()[0]
-
     top_n = 10
-
     resume_indices = resume_vector.argsort()[-top_n:][::-1]
     jd_indices = jd_vector.argsort()[-top_n:][::-1]
-
     resume_skills = [feature_names[i] for i in resume_indices]
     jd_skills = [feature_names[i] for i in jd_indices]
 
     # 🔹 Skill Comparison
     resume_set = set(resume_skills)
     jd_set = set(jd_skills)
-
     matched_skills = list(resume_set.intersection(jd_set))
     missing_skills = list(jd_set - resume_set)
 
     # 🔹 Skill Score
-    if len(jd_skills) > 0:
-        skill_match_score = (len(matched_skills) / len(jd_skills)) * 100
-    else:
-        skill_match_score = 0
+    skill_match_score = (len(matched_skills) / len(jd_skills)) * 100 if jd_skills else 0
 
     # 🔹 Final Score
     final_score = (0.6 * ats_score) + (0.4 * skill_match_score)
